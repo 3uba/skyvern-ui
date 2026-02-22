@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import type { Artifact } from './types';
+import { proxyArtifactUrl } from '@/lib/utils/artifact-url';
 import { Code, Copy, Check } from 'lucide-react';
 
 export function RunCode({ artifacts }: { artifacts: Artifact[] }) {
@@ -47,7 +48,8 @@ function ScriptViewer({ artifact }: { artifact: Artifact }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const url = artifact.signed_url || artifact.uri;
+  const rawUrl = artifact.signed_url || artifact.uri;
+  const url = proxyArtifactUrl(rawUrl);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +85,7 @@ function ScriptViewer({ artifact }: { artifact: Artifact }) {
     <div className="rounded-lg border bg-card overflow-hidden">
       <div className="flex items-center justify-between border-b px-3 py-2">
         <span className="text-xs font-mono text-muted-foreground">
-          {url.split('/').pop()?.split('?')[0] || 'script.py'}
+          {rawUrl.split('/').pop()?.split('?')[0] || 'script.py'}
         </span>
         {code && (
           <button

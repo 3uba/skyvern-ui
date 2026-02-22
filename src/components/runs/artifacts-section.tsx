@@ -1,6 +1,7 @@
 'use client';
 
 import type { Artifact } from './types';
+import { proxyArtifactUrl } from '@/lib/utils/artifact-url';
 import {
   Image as ImageIcon,
   Video,
@@ -82,7 +83,8 @@ export function ArtifactsSection({ artifacts }: { artifacts: Artifact[] }) {
           </h4>
           <div className="rounded-md border divide-y">
             {group.items.map((artifact) => {
-              const url = artifact.signed_url || artifact.uri;
+              const rawUrl = artifact.signed_url || artifact.uri;
+              const url = proxyArtifactUrl(rawUrl);
               return (
                 <a
                   key={artifact.artifact_id}
@@ -95,7 +97,7 @@ export function ArtifactsSection({ artifacts }: { artifacts: Artifact[] }) {
                     {artifact.artifact_type}
                   </span>
                   <span className="flex-1 truncate text-primary group-hover:underline">
-                    {url.split('/').pop() || artifact.artifact_type}
+                    {rawUrl.split('/').pop()?.split('?')[0] || artifact.artifact_type}
                   </span>
                   <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </a>

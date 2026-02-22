@@ -2,10 +2,9 @@
 
 import { useMemo } from 'react';
 import type { Artifact } from './types';
+import { proxyArtifactUrl } from '@/lib/utils/artifact-url';
 import { ScreenshotsSection } from './screenshots-section';
 import { Monitor } from 'lucide-react';
-
-/* eslint-disable @next/next/no-img-element */
 
 export function RunOverviewTab({ artifacts }: { artifacts: Artifact[] }) {
   const screenshots = useMemo(
@@ -17,7 +16,7 @@ export function RunOverviewTab({ artifacts }: { artifacts: Artifact[] }) {
             a.artifact_type === 'screenshot_final' ||
             a.artifact_type === 'screenshot',
         )
-        .map((a) => a.signed_url || a.uri)
+        .map((a) => proxyArtifactUrl(a.signed_url || a.uri))
         .filter(Boolean) as string[],
     [artifacts],
   );
