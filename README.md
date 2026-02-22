@@ -4,6 +4,35 @@ A self-hosted web interface for [Skyvern](https://github.com/Skyvern-AI/skyvern)
 
 **Skyvern UI adds what Skyvern doesn't ship out of the box:** user authentication, role-based access control, and a secure API proxy — so you can deploy Skyvern in production without exposing it directly to the internet.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/login.png" alt="Login" width="400"><br><b>Login</b></td>
+    <td><img src="docs/screenshots/setup.png" alt="Setup Wizard" width="400"><br><b>Setup Wizard</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/dashboard.png" alt="Dashboard" width="400"><br><b>Dashboard</b></td>
+    <td><img src="docs/screenshots/workflows.png" alt="Workflows" width="400"><br><b>Workflows</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/workflow-builder.png" alt="Workflow Builder" width="400"><br><b>Workflow Builder</b></td>
+    <td><img src="docs/screenshots/runs.png" alt="Runs" width="400"><br><b>Runs</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/run-detail-steps.png" alt="Run Detail — Steps" width="400"><br><b>Run Detail — Steps</b></td>
+    <td><img src="docs/screenshots/run-detail-output.png" alt="Run Detail — Output" width="400"><br><b>Run Detail — Output</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/credentials.png" alt="Credentials" width="400"><br><b>Credentials</b></td>
+    <td><img src="docs/screenshots/sessions.png" alt="Browser Sessions" width="400"><br><b>Browser Sessions</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/users.png" alt="User Management" width="400"><br><b>User Management</b></td>
+    <td></td>
+  </tr>
+</table>
+
 ## Why does this exist?
 
 Skyvern's built-in frontend has no authentication. Anyone with access to the URL can run automations, view credentials, and access the API key. That's fine for local development, but not for production.
