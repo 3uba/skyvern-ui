@@ -1,14 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoginForm } from '@/components/auth/login-form';
-import { RegisterForm } from '@/components/auth/register-form';
-import { Bot } from 'lucide-react';
+import { Bot, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
-  const [tab, setTab] = useState('login');
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/setup/status')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.needsSetup) {
+          router.replace('/setup');
+        } else {
+          setChecking(false);
+        }
+      })
+      .catch(() => setChecking(false));
+  }, [router]);
+
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md px-4">
@@ -21,28 +42,12 @@ export default function LoginPage() {
       </div>
 
       <Card>
-        <CardHeader className="pb-4">
-          <Tabs value={tab} onValueChange={setTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Sign In</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <CardHeader>
+          <CardTitle>Sign In</CardTitle>
+          <CardDescription>Enter your credentials</CardDescription>
         </CardHeader>
         <CardContent>
-          {tab === 'login' ? (
-            <>
-              <CardTitle className="sr-only">Sign In</CardTitle>
-              <CardDescription className="sr-only">Enter your credentials</CardDescription>
-              <LoginForm />
-            </>
-          ) : (
-            <>
-              <CardTitle className="sr-only">Register</CardTitle>
-              <CardDescription className="sr-only">Create a new account</CardDescription>
-              <RegisterForm />
-            </>
-          )}
+          <LoginForm />
         </CardContent>
       </Card>
     </div>
