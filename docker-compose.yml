@@ -21,7 +21,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      SKYVERN_INTERNAL_URL: http://skyvern:8000/api/v1
+      SKYVERN_INTERNAL_URL: http://skyvern:8000
       DATABASE_URL: postgresql://skyvern:skyvern@postgres:5432/skyvern_ui
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-secret-change-in-production}
       BETTER_AUTH_URL: http://localhost:3000

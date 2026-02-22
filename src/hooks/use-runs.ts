@@ -1,11 +1,12 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export const runKeys = {
   all: ['runs'] as const,
   lists: () => [...runKeys.all, 'list'] as const,
-  list: (filters: Record<string, unknown>) => [...runKeys.lists(), filters] as const,
+  list: (filters: Record<string, unknown>) =>
+    [...runKeys.lists(), filters] as const,
   detail: (id: string) => [...runKeys.all, 'detail', id] as const,
   timeline: (id: string) => [...runKeys.all, 'timeline', id] as const,
   artifacts: (id: string) => [...runKeys.all, 'artifacts', id] as const,
@@ -13,6 +14,12 @@ export const runKeys = {
 
 async function fetchApi(path: string) {
   const res = await fetch(`/api/skyvern/${path}`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+async function postApi(path: string) {
+  const res = await fetch(`/api/skyvern/${path}`, { method: 'POST' });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
@@ -37,7 +44,12 @@ export function useRun(runId: string) {
     enabled: !!runId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      if (status === 'running' || status === 'queued' || status === 'created') return 3000;
+      if (
+        status === 'running' ||
+        status === 'queued' ||
+        status === 'created'
+      )
+        return 3000;
       return false;
     },
   });
@@ -56,5 +68,16 @@ export function useRunArtifacts(runId: string) {
     queryKey: runKeys.artifacts(runId),
     queryFn: () => fetchApi(`runs/${runId}/artifacts`),
     enabled: !!runId,
+  });
+}
+
+export function useCancelRun(runId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => postApi(`runs/${runId}/cancel`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: runKeys.detail(runId) });
+      queryClient.invalidateQueries({ queryKey: runKeys.timeline(runId) });
+    },
   });
 }

@@ -3,17 +3,12 @@ import { auth } from '@/lib/auth/auth';
 import { getSkyvernConfig } from '@/lib/api/skyvern-proxy';
 import { logAuditEvent } from '@/lib/audit/log';
 
-// Endpoints that only exist on the new base_router (/v1/) and NOT on legacy (/api/v1/)
-const V1_ONLY_PREFIXES = ['browser_sessions', 'browser_profiles', 'workflows'];
-
 function buildSkyvernUrl(
   skyvernPath: string,
   apiUrl: string,
   searchParams: URLSearchParams,
+  prefix: string,
 ): string {
-  const prefix = V1_ONLY_PREFIXES.some((p) => skyvernPath.startsWith(p))
-    ? '/v1/'
-    : '/api/v1/';
   const url = new URL(`${prefix}${skyvernPath}`, apiUrl);
   searchParams.forEach((value, key) => url.searchParams.set(key, value));
   return url.toString();
@@ -42,21 +37,21 @@ async function handler(
     );
   }
 
-  // 3. Build URL
+  // 3. Build URL & forward (try /v1/ first, fall back to /api/v1/ on 404)
   const skyvernPath = path.join('/');
-  const skyvernUrl = buildSkyvernUrl(skyvernPath, config.apiUrl, request.nextUrl.searchParams);
-
-  // 4. Forward
   const body = !['GET', 'HEAD'].includes(request.method) ? await request.text() : undefined;
+  const headers = {
+    'Content-Type': request.headers.get('content-type') || 'application/json',
+    'x-api-key': config.apiKey,
+  };
 
-  const response = await fetch(skyvernUrl, {
-    method: request.method,
-    headers: {
-      'Content-Type': request.headers.get('content-type') || 'application/json',
-      'x-api-key': config.apiKey,
-    },
-    body,
-  });
+  let skyvernUrl = buildSkyvernUrl(skyvernPath, config.apiUrl, request.nextUrl.searchParams, '/v1/');
+  let response = await fetch(skyvernUrl, { method: request.method, headers, body });
+
+  if (response.status === 404) {
+    skyvernUrl = buildSkyvernUrl(skyvernPath, config.apiUrl, request.nextUrl.searchParams, '/api/v1/');
+    response = await fetch(skyvernUrl, { method: request.method, headers, body });
+  }
 
   // 5. Audit log (fire-and-forget on write ops)
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
