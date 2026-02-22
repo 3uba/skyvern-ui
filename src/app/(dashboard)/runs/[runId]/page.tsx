@@ -33,6 +33,7 @@ import {
   OutputSection,
   RunParameters,
   RunCode,
+  StepsTab,
   TimelineSidebar,
 } from '@/components/runs';
 import type { Run, TimelineEntry, Artifact } from '@/components/runs';
@@ -43,6 +44,7 @@ import {
   Settings,
   Video,
   Code,
+  ListChecks,
   ExternalLink,
   XCircle,
   Pencil,
@@ -77,6 +79,7 @@ export default function RunDetailPage({
   const { data: timeline } = useRunTimeline(runId);
   const { data: artifacts } = useRunArtifacts(runId);
   const cancelMutation = useCancelRun(runId);
+  const [activeTab, setActiveTab] = useState('overview');
 
   if (isLoading) return <PageSkeleton />;
   if (error)
@@ -88,6 +91,9 @@ export default function RunDetailPage({
   const active = isRunActive(typedRun.status);
   const finished = isRunFinished(typedRun.status);
   const workflowId = typedRun.run_request?.workflow_id;
+
+  // Steps tab is full-width (no sidebar)
+  const showSidebar = activeTab !== 'steps';
 
   return (
     <div className="flex flex-col gap-5 h-full">
@@ -194,15 +200,18 @@ export default function RunDetailPage({
         </div>
       )}
 
-      {/* ── Two-column layout: Tabs + Timeline Sidebar ─────────────────────── */}
+      {/* ── Main content area ──────────────────────────────────────────────── */}
       <div className="flex gap-5 min-h-0 flex-1">
-        {/* Left: Tabs */}
         <div className="flex-1 min-w-0">
-          <Tabs defaultValue="overview">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="overview" className="gap-1.5">
                 <Monitor className="h-3.5 w-3.5" />
                 Overview
+              </TabsTrigger>
+              <TabsTrigger value="steps" className="gap-1.5">
+                <ListChecks className="h-3.5 w-3.5" />
+                Steps
               </TabsTrigger>
               <TabsTrigger value="output" className="gap-1.5">
                 <FileText className="h-3.5 w-3.5" />
@@ -224,6 +233,10 @@ export default function RunDetailPage({
 
             <TabsContent value="overview" className="mt-4">
               <RunOverviewTab artifacts={typedArtifacts} />
+            </TabsContent>
+
+            <TabsContent value="steps" className="mt-4">
+              <StepsTab timeline={typedTimeline} />
             </TabsContent>
 
             <TabsContent value="output" className="mt-4">
@@ -255,10 +268,12 @@ export default function RunDetailPage({
           </Tabs>
         </div>
 
-        {/* Right: Timeline Sidebar */}
-        <div className="w-80 shrink-0 hidden lg:block">
-          <TimelineSidebar run={typedRun} timeline={typedTimeline} />
-        </div>
+        {/* Right: Timeline Sidebar — hidden on Steps tab */}
+        {showSidebar && (
+          <div className="w-80 shrink-0 hidden lg:block">
+            <TimelineSidebar run={typedRun} timeline={typedTimeline} />
+          </div>
+        )}
       </div>
     </div>
   );

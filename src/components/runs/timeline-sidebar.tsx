@@ -1,7 +1,7 @@
 'use client';
 
 import type { Run, TimelineEntry } from './types';
-import { TimelineBlockItem } from './timeline-block';
+import { SidebarBlockItem } from './sidebar-block-item';
 import { Layers, Zap } from 'lucide-react';
 
 function countActions(entries: TimelineEntry[]): number {
@@ -45,14 +45,14 @@ export function TimelineSidebar({
       </div>
 
       {/* Timeline entries */}
-      <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+      <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
         {timeline.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
             No timeline data.
           </p>
         ) : (
           timeline.map((entry, i) => (
-            <TimelineBlockItem key={i} entry={entry} />
+            <SidebarBlockItem key={i} entry={entry} />
           ))
         )}
       </div>
