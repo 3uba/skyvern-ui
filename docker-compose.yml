@@ -4,12 +4,11 @@ services:
     restart: always
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./docker/postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh:ro
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_USER: skyvern
       POSTGRES_PASSWORD: skyvern
-      POSTGRES_DB: skyvern
+      POSTGRES_DB: skyvern_ui
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U skyvern"]
       interval: 5s
