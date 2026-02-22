@@ -12,6 +12,7 @@ import {
   Settings,
   Users,
   Bot,
+  Sparkles,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -38,6 +39,7 @@ const navGroups = [
     items: [
       { title: 'Tasks', href: '/tasks', icon: ListChecks },
       { title: 'Workflows', href: '/workflows', icon: Workflow },
+      { title: 'Discover', href: '/discover', icon: Sparkles },
       { title: 'Runs', href: '/runs', icon: History },
     ],
   },

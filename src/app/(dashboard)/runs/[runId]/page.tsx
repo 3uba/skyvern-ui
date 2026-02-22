@@ -35,6 +35,8 @@ import {
   RunCode,
   StepsTab,
   TimelineSidebar,
+  TotpForm,
+  HumanInteractionBanner,
 } from '@/components/runs';
 import type { Run, TimelineEntry, Artifact } from '@/components/runs';
 import {
@@ -198,6 +200,21 @@ export default function RunDetailPage({
             </p>
           </div>
         </div>
+      )}
+
+      {/* ── Active run banners ─────────────────────────────────────────────── */}
+      {active && (
+        <HumanInteractionBanner
+          timeline={typedTimeline}
+          appUrl={typedRun.app_url}
+        />
+      )}
+      {active && (
+        <TotpForm
+          runId={runId}
+          totpIdentifier={typedRun.run_request?.totp_identifier as string | undefined}
+          workflowId={typedRun.run_request?.workflow_id}
+        />
       )}
 
       {/* ── Main content area ──────────────────────────────────────────────── */}

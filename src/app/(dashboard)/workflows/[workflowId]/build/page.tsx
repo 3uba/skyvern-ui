@@ -2,14 +2,15 @@
 
 import { use, useCallback, useMemo, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useWorkflow, useRunWorkflow, useUpdateWorkflow } from '@/hooks/use-workflows';
+import { useWorkflow, useUpdateWorkflow } from '@/hooks/use-workflows';
+import { RunWorkflowDialog } from '@/components/workflow/run-workflow-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PageSkeleton } from '@/components/shared/loading-skeleton';
 import { ErrorState } from '@/components/shared/error-state';
 import { ParametersPanel } from '@/components/workflow/parameters-panel';
 import { WorkflowBuilder } from '@/components/workflow/workflow-builder';
-import { ArrowLeft, Play, Save, History, Variable, Loader2, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, Save, History, Variable, Loader2, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function WorkflowBuilderPage({
@@ -19,7 +20,6 @@ export default function WorkflowBuilderPage({
 }) {
   const { workflowId } = use(params);
   const { data: workflow, isLoading, error, refetch } = useWorkflow(workflowId);
-  const runWorkflow = useRunWorkflow();
   const updateWorkflow = useUpdateWorkflow();
 
   const [localBlocks, setLocalBlocks] = useState<Record<string, unknown>[]>([]);
@@ -73,16 +73,6 @@ export default function WorkflowBuilderPage({
       toast.success('Workflow saved');
     } catch {
       toast.error('Failed to save workflow');
-    }
-  };
-
-  const handleRun = async () => {
-    try {
-      const result = await runWorkflow.mutateAsync({ workflowId });
-      const runId = result?.workflow_run_id;
-      toast.success(runId ? `Run started: ${runId}` : 'Workflow run started');
-    } catch {
-      toast.error('Failed to run workflow');
     }
   };
 
@@ -149,14 +139,11 @@ export default function WorkflowBuilderPage({
             )}
             Save
           </Button>
-          <Button size="sm" onClick={handleRun} disabled={runWorkflow.isPending}>
-            {runWorkflow.isPending ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Play className="mr-1.5 h-3.5 w-3.5" />
-            )}
-            Run
-          </Button>
+          <RunWorkflowDialog
+            workflowId={workflowId}
+            workflowTitle={wf?.title as string}
+            parameters={allParams}
+          />
         </div>
       </div>
 

@@ -2,6 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+const ACTIVE_STATUSES = ['running', 'queued', 'created'];
+
 export const runKeys = {
   all: ['runs'] as const,
   lists: () => [...runKeys.all, 'list'] as const,
@@ -34,6 +36,14 @@ export function useRuns(page = 1, pageSize = 10, searchKey?: string) {
   return useQuery({
     queryKey: runKeys.list({ page, pageSize, searchKey }),
     queryFn: () => fetchApi(`runs?${params}`),
+    // Auto-refresh list if any run is active
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (Array.isArray(data) && data.some((r: Record<string, string>) => ACTIVE_STATUSES.includes(r.status))) {
+        return 5000;
+      }
+      return false;
+    },
   });
 }
 
@@ -44,12 +54,7 @@ export function useRun(runId: string) {
     enabled: !!runId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      if (
-        status === 'running' ||
-        status === 'queued' ||
-        status === 'created'
-      )
-        return 3000;
+      if (ACTIVE_STATUSES.includes(status)) return 2000;
       return false;
     },
   });
@@ -60,6 +65,20 @@ export function useRunTimeline(runId: string) {
     queryKey: runKeys.timeline(runId),
     queryFn: () => fetchApi(`runs/${runId}/timeline`),
     enabled: !!runId,
+    refetchInterval: (query) => {
+      // Re-poll timeline while the parent run is active
+      // We can't know run status here, so poll at a slower rate
+      // and let React Query de-duplicate
+      const data = query.state.data;
+      if (Array.isArray(data)) {
+        const hasActive = data.some(
+          (e: Record<string, unknown>) =>
+            (e as { block?: { status?: string } }).block?.status === 'running',
+        );
+        if (hasActive) return 3000;
+      }
+      return false;
+    },
   });
 }
 

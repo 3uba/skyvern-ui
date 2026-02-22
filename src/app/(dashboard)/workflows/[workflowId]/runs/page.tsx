@@ -3,7 +3,8 @@
 import { use, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { useWorkflow, useRunWorkflow } from '@/hooks/use-workflows';
+import { useWorkflow } from '@/hooks/use-workflows';
+import { RunWorkflowDialog } from '@/components/workflow/run-workflow-dialog';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { CopyButton } from '@/components/shared/copy-button';
@@ -11,8 +12,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { TableSkeleton } from '@/components/shared/loading-skeleton';
 import { ErrorState } from '@/components/shared/error-state';
 import { formatDate } from '@/lib/utils/format-date';
-import { ArrowLeft, History, Play, ChevronLeft, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
+import { ArrowLeft, History, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -38,8 +38,6 @@ export default function WorkflowRunsPage({
   const pageSize = 15;
 
   const { data: workflow } = useWorkflow(workflowId);
-  const runWorkflow = useRunWorkflow();
-
   // Fetch all runs and filter client-side (API has no per-workflow filter)
   const { data: allRuns, isLoading, error, refetch } = useQuery({
     queryKey: ['workflow-runs', workflowId, page],
@@ -53,17 +51,9 @@ export default function WorkflowRunsPage({
     );
   }, [allRuns, workflowId]);
 
-  const wf = workflow as Record<string, string> | undefined;
-
-  const handleRun = async () => {
-    try {
-      await runWorkflow.mutateAsync({ workflowId });
-      toast.success('Workflow run started');
-      refetch();
-    } catch {
-      toast.error('Failed to run workflow');
-    }
-  };
+  const wf = workflow as Record<string, unknown> | undefined;
+  const defn = wf?.workflow_definition as Record<string, unknown> | undefined;
+  const allParams = Array.isArray(defn?.parameters) ? (defn.parameters as Record<string, unknown>[]) : [];
 
   return (
     <div className="space-y-6">
@@ -75,14 +65,16 @@ export default function WorkflowRunsPage({
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">
-            {wf?.title || 'Workflow'} — Runs
+            {(wf?.title as string) || 'Workflow'} — Runs
           </h1>
           <p className="text-sm text-muted-foreground font-mono">{workflowId}</p>
         </div>
-        <Button onClick={handleRun} disabled={runWorkflow.isPending}>
-          <Play className="mr-2 h-4 w-4" />
-          Run Workflow
-        </Button>
+        <RunWorkflowDialog
+          workflowId={workflowId}
+          workflowTitle={wf?.title as string}
+          parameters={allParams}
+          onSuccess={() => refetch()}
+        />
       </div>
 
       {isLoading ? (
@@ -95,10 +87,12 @@ export default function WorkflowRunsPage({
           title="No runs yet"
           description="Run this workflow to see execution history"
           action={
-            <Button onClick={handleRun} disabled={runWorkflow.isPending}>
-              <Play className="mr-2 h-4 w-4" />
-              Run Workflow
-            </Button>
+            <RunWorkflowDialog
+              workflowId={workflowId}
+              workflowTitle={wf?.title as string}
+              parameters={allParams}
+              onSuccess={() => refetch()}
+            />
           }
         />
       ) : (

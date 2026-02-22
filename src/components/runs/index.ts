@@ -12,6 +12,8 @@ export { RunCode } from './run-code';
 export { TimelineBlockItem } from './timeline-block';
 export { SidebarBlockItem } from './sidebar-block-item';
 export { ActionCard } from './action-card';
+export { TotpForm } from './totp-form';
+export { HumanInteractionBanner } from './human-interaction-banner';
 export type {
   Run,
   RunRequest,

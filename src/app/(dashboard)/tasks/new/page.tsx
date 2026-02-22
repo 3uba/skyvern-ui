@@ -1,15 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCreateTask } from '@/hooks/use-tasks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -17,59 +14,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, ChevronDown, Play } from 'lucide-react';
 import Link from 'next/link';
-
-const taskSchema = z.object({
-  url: z.string().url('Must be a valid URL'),
-  navigation_goal: z.string().optional(),
-  data_extraction_goal: z.string().optional(),
-  navigation_payload: z.string().optional(),
-  engine: z.string().optional(),
-  max_steps_override: z.number().min(1).max(100).optional(),
-  proxy_location: z.string().optional(),
-});
-
-type TaskValues = z.infer<typeof taskSchema>;
 
 export default function NewTaskPage() {
   const router = useRouter();
   const createTask = useCreateTask();
+  const [prompt, setPrompt] = useState('');
+  const [url, setUrl] = useState('');
+  const [engine, setEngine] = useState('skyvern-2.0');
+  const [proxyLocation, setProxyLocation] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    formState: { errors },
-  } = useForm<TaskValues>({
-    resolver: zodResolver(taskSchema),
-    defaultValues: {
-      engine: 'v2',
-    },
-  });
+  const canSubmit = prompt.trim().length > 0 && !createTask.isPending;
 
-  const onSubmit = async (values: TaskValues) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+
     try {
       const payload: Record<string, unknown> = {
-        url: values.url,
+        prompt: prompt.trim(),
+        engine,
       };
-      if (values.navigation_goal) payload.navigation_goal = values.navigation_goal;
-      if (values.data_extraction_goal) payload.data_extraction_goal = values.data_extraction_goal;
-      if (values.navigation_payload) {
-        try {
-          payload.navigation_payload = JSON.parse(values.navigation_payload);
-        } catch {
-          payload.navigation_payload = values.navigation_payload;
-        }
-      }
-      if (values.engine) payload.engine = values.engine;
-      if (values.max_steps_override) payload.max_steps_override = values.max_steps_override;
-      if (values.proxy_location) payload.proxy_location = values.proxy_location;
+      if (url.trim()) payload.url = url.trim();
+      if (proxyLocation && proxyLocation !== 'NONE') payload.proxy_location = proxyLocation;
 
       const result = await createTask.mutateAsync(payload);
-      toast.success('Task created successfully');
-      router.push(`/tasks/${result.run_id || result.task_id}`);
+      toast.success('Task started');
+      router.push(`/runs/${result.run_id || result.task_id}`);
     } catch {
       toast.error('Failed to create task');
     }
@@ -85,116 +64,89 @@ export default function NewTaskPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">New Task</h1>
-          <p className="text-muted-foreground">Run a one-time browser automation task</p>
+          <p className="text-muted-foreground">Describe what you want the browser to do</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Task Configuration</CardTitle>
-            <CardDescription>Configure the browser automation parameters</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="url">Target URL *</Label>
-              <Input
-                id="url"
-                placeholder="https://example.com"
-                {...register('url')}
-              />
-              {errors.url && (
-                <p className="text-xs text-destructive">{errors.url.message}</p>
-              )}
-            </div>
+      <form onSubmit={handleSubmit} className="max-w-2xl space-y-4">
+        <div className="space-y-2">
+          <Textarea
+            placeholder="What would you like to accomplish? e.g. Go to amazon.com and find the cheapest wireless keyboard under $30"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            rows={4}
+            className="text-base"
+            autoFocus
+          />
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="navigation_goal">Navigation Goal</Label>
-              <Textarea
-                id="navigation_goal"
-                placeholder="Describe what the browser should do..."
-                rows={3}
-                {...register('navigation_goal')}
-              />
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="url" className="text-sm text-muted-foreground">
+            Starting URL (optional — Skyvern will figure it out if omitted)
+          </Label>
+          <Input
+            id="url"
+            placeholder="https://example.com"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="data_extraction_goal">Data Extraction Goal</Label>
-              <Textarea
-                id="data_extraction_goal"
-                placeholder="Describe what data to extract..."
-                rows={3}
-                {...register('data_extraction_goal')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="navigation_payload">Navigation Payload (JSON)</Label>
-              <Textarea
-                id="navigation_payload"
-                placeholder='{"key": "value"}'
-                rows={3}
-                className="font-mono text-sm"
-                {...register('navigation_payload')}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Advanced Options</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" type="button" className="gap-1 text-muted-foreground">
+              <ChevronDown className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+              Advanced options
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Engine</Label>
-                <Select defaultValue="v2" onValueChange={(v) => setValue('engine', v)}>
+                <Label className="text-sm">Engine</Label>
+                <Select value={engine} onValueChange={setEngine}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="v2">V2 (Recommended)</SelectItem>
-                    <SelectItem value="v1">V1</SelectItem>
+                    <SelectItem value="skyvern-2.0">Skyvern 2.0 (Recommended)</SelectItem>
+                    <SelectItem value="skyvern-1.0">Skyvern 1.0</SelectItem>
+                    <SelectItem value="openai-cua">OpenAI CUA</SelectItem>
+                    <SelectItem value="anthropic-cua">Anthropic CUA</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="max_steps">Max Steps</Label>
-                <Input
-                  id="max_steps"
-                  type="number"
-                  placeholder="25"
-                  {...register('max_steps_override')}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Proxy Location</Label>
-                <Select onValueChange={(v) => setValue('proxy_location', v)}>
+                <Label className="text-sm">Proxy Location</Label>
+                <Select value={proxyLocation} onValueChange={setProxyLocation}>
                   <SelectTrigger>
                     <SelectValue placeholder="None" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="NONE">None</SelectItem>
-                    <SelectItem value="US">US</SelectItem>
-                    <SelectItem value="UK">UK</SelectItem>
-                    <SelectItem value="DE">Germany</SelectItem>
-                    <SelectItem value="JP">Japan</SelectItem>
+                    <SelectItem value="RESIDENTIAL">US (Residential)</SelectItem>
+                    <SelectItem value="RESIDENTIAL_GB">United Kingdom</SelectItem>
+                    <SelectItem value="RESIDENTIAL_DE">Germany</SelectItem>
+                    <SelectItem value="RESIDENTIAL_FR">France</SelectItem>
+                    <SelectItem value="RESIDENTIAL_JP">Japan</SelectItem>
+                    <SelectItem value="RESIDENTIAL_IN">India</SelectItem>
+                    <SelectItem value="RESIDENTIAL_BR">Brazil</SelectItem>
+                    <SelectItem value="RESIDENTIAL_AU">Australia</SelectItem>
+                    <SelectItem value="RESIDENTIAL_CA">Canada</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </CollapsibleContent>
+        </Collapsible>
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/tasks">Cancel</Link>
-          </Button>
-          <Button type="submit" disabled={createTask.isPending}>
-            {createTask.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <div className="flex justify-end pt-2">
+          <Button type="submit" disabled={!canSubmit} size="lg">
+            {createTask.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="mr-2 h-4 w-4" />
+            )}
             Run Task
           </Button>
         </div>
