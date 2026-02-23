@@ -209,7 +209,7 @@ export default function RunDetailPage({
       <RunOverview run={typedRun} />
 
       {/* ── Failure reason ─────────────────────────────────────────────────── */}
-      {typedRun.failure_reason && (
+      {typeof typedRun.failure_reason === 'string' && typedRun.failure_reason && (
         <div className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
           <div>
@@ -232,7 +232,7 @@ export default function RunDetailPage({
           appUrl={typedRun.app_url}
         />
       )}
-      {active && typedRun.run_request?.totp_identifier && (
+      {active && typeof typedRun.run_request?.totp_identifier === 'string' && (
         <TotpForm
           runId={runId}
           totpIdentifier={typedRun.run_request.totp_identifier as string}
