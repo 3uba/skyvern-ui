@@ -5,8 +5,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /* eslint-disable @next/next/no-img-element */
 
-export function ScreenshotsSection({ urls }: { urls: string[] }) {
-  const [selected, setSelected] = useState(0);
+export function ScreenshotsSection({ urls, defaultIndex }: { urls: string[]; defaultIndex?: number }) {
+  const [selected, setSelected] = useState(defaultIndex ?? 0);
 
   return (
     <div className="space-y-3">

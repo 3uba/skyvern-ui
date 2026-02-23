@@ -60,33 +60,40 @@ export function useRun(runId: string) {
   });
 }
 
-export function useRunTimeline(runId: string) {
+export function useRunTimeline(runId: string, workflowPermanentId?: string, isRunActive = false) {
+  // Workflow runs (wr_) need the workflow-specific timeline endpoint
+  // because /v1/runs/{id}/timeline has a backend bug for workflow runs.
+  const isWorkflowRun = runId.startsWith('wr_');
+  const path =
+    isWorkflowRun && workflowPermanentId
+      ? `workflows/${workflowPermanentId}/runs/${runId}/timeline`
+      : `runs/${runId}/timeline`;
+
   return useQuery({
     queryKey: runKeys.timeline(runId),
-    queryFn: () => fetchApi(`runs/${runId}/timeline`),
-    enabled: !!runId,
-    refetchInterval: (query) => {
-      // Re-poll timeline while the parent run is active
-      // We can't know run status here, so poll at a slower rate
-      // and let React Query de-duplicate
-      const data = query.state.data;
-      if (Array.isArray(data)) {
-        const hasActive = data.some(
-          (e: Record<string, unknown>) =>
-            (e as { block?: { status?: string } }).block?.status === 'running',
-        );
-        if (hasActive) return 3000;
-      }
-      return false;
-    },
+    queryFn: () => fetchApi(path),
+    enabled: !!runId && (!isWorkflowRun || !!workflowPermanentId),
+    // Keep polling while the run is active so new blocks are detected
+    refetchInterval: isRunActive ? 3000 : false,
   });
 }
 
-export function useRunArtifacts(runId: string) {
+export function useRunArtifacts(runId: string, isActive = false) {
   return useQuery({
     queryKey: runKeys.artifacts(runId),
     queryFn: () => fetchApi(`runs/${runId}/artifacts`),
     enabled: !!runId,
+    refetchInterval: isActive ? 2000 : false,
+  });
+}
+
+export function useBlockArtifacts(blockId: string | null, isActive = false) {
+  return useQuery({
+    queryKey: ['blockArtifacts', blockId],
+    queryFn: () => fetchApi(`workflow_run_block/${blockId}/artifacts`),
+    enabled: !!blockId,
+    // Keep polling for active runs to get the latest screenshot
+    refetchInterval: isActive ? 3000 : false,
   });
 }
 

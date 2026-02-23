@@ -2,14 +2,15 @@
 
 import { use, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   useRun,
   useRunTimeline,
   useRunArtifacts,
   useCancelRun,
 } from '@/hooks/use-runs';
+import { useRunWorkflow } from '@/hooks/use-workflows';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
@@ -25,10 +26,10 @@ import {
 import { StatusBadge } from '@/components/shared/status-badge';
 import { PageSkeleton } from '@/components/shared/loading-skeleton';
 import { ErrorState } from '@/components/shared/error-state';
-import { JsonViewer } from '@/components/shared/json-viewer';
 import {
   RunOverview,
   RunOverviewTab,
+  ScreenshotsTab,
   RecordingSection,
   OutputSection,
   RunParameters,
@@ -42,6 +43,7 @@ import type { Run, TimelineEntry, Artifact } from '@/components/runs';
 import {
   ArrowLeft,
   Monitor,
+  Image,
   FileText,
   Settings,
   Video,
@@ -77,10 +79,15 @@ export default function RunDetailPage({
   params: Promise<{ runId: string }>;
 }) {
   const { runId } = use(params);
+  const router = useRouter();
   const { data: run, isLoading, error, refetch } = useRun(runId);
-  const { data: timeline } = useRunTimeline(runId);
-  const { data: artifacts } = useRunArtifacts(runId);
+  const workflowPermanentId = (run as Run | undefined)?.run_request?.workflow_id;
+  const runStatus = (run as Run | undefined)?.status ?? '';
+  const active = isRunActive(runStatus);
+  const { data: timeline } = useRunTimeline(runId, workflowPermanentId, active);
+  const { data: artifacts } = useRunArtifacts(runId, active);
   const cancelMutation = useCancelRun(runId);
+  const rerunMutation = useRunWorkflow();
   const [activeTab, setActiveTab] = useState('overview');
 
   if (isLoading) return <PageSkeleton />;
@@ -90,12 +97,11 @@ export default function RunDetailPage({
   const typedRun = run as Run;
   const typedTimeline = (timeline ?? []) as TimelineEntry[];
   const typedArtifacts = (artifacts ?? []) as Artifact[];
-  const active = isRunActive(typedRun.status);
   const finished = isRunFinished(typedRun.status);
   const workflowId = typedRun.run_request?.workflow_id;
 
-  // Steps tab is full-width (no sidebar)
-  const showSidebar = activeTab !== 'steps';
+  // Full-width tabs (no sidebar)
+  const showSidebar = activeTab !== 'steps' && activeTab !== 'screenshots';
 
   return (
     <div className="flex flex-col gap-5 h-full">
@@ -172,11 +178,28 @@ export default function RunDetailPage({
           )}
 
           {finished && workflowId && (
-            <Button size="sm" asChild>
-              <Link href={`/workflows/${workflowId}/run`}>
-                <Play className="mr-1.5 h-3 w-3" />
-                Rerun
-              </Link>
+            <Button
+              size="sm"
+              disabled={rerunMutation.isPending}
+              onClick={() => {
+                rerunMutation.mutate(
+                  {
+                    workflowId,
+                    data: typedRun.run_request?.parameters
+                      ? { parameters: typedRun.run_request.parameters }
+                      : undefined,
+                  },
+                  {
+                    onSuccess: (data: { workflow_run_id?: string; run_id?: string }) => {
+                      const newRunId = data.workflow_run_id || data.run_id;
+                      if (newRunId) router.push(`/runs/${newRunId}`);
+                    },
+                  },
+                );
+              }}
+            >
+              <Play className="mr-1.5 h-3 w-3" />
+              {rerunMutation.isPending ? 'Starting...' : 'Rerun'}
             </Button>
           )}
         </div>
@@ -209,10 +232,10 @@ export default function RunDetailPage({
           appUrl={typedRun.app_url}
         />
       )}
-      {active && (
+      {active && typedRun.run_request?.totp_identifier && (
         <TotpForm
           runId={runId}
-          totpIdentifier={typedRun.run_request?.totp_identifier as string | undefined}
+          totpIdentifier={typedRun.run_request.totp_identifier as string}
           workflowId={typedRun.run_request?.workflow_id}
         />
       )}
@@ -225,6 +248,10 @@ export default function RunDetailPage({
               <TabsTrigger value="overview" className="gap-1.5">
                 <Monitor className="h-3.5 w-3.5" />
                 Overview
+              </TabsTrigger>
+              <TabsTrigger value="screenshots" className="gap-1.5">
+                <Image className="h-3.5 w-3.5" />
+                Screenshots
               </TabsTrigger>
               <TabsTrigger value="steps" className="gap-1.5">
                 <ListChecks className="h-3.5 w-3.5" />
@@ -249,7 +276,19 @@ export default function RunDetailPage({
             </TabsList>
 
             <TabsContent value="overview" className="mt-4">
-              <RunOverviewTab artifacts={typedArtifacts} />
+              <RunOverviewTab
+                run={typedRun}
+                artifacts={typedArtifacts}
+              />
+            </TabsContent>
+
+            <TabsContent value="screenshots" className="mt-4">
+              <ScreenshotsTab
+                run={typedRun}
+                artifacts={typedArtifacts}
+                timeline={typedTimeline}
+                isActive={active}
+              />
             </TabsContent>
 
             <TabsContent value="steps" className="mt-4">

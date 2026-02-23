@@ -1,9 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/auth';
+import { getSkyvernConfig } from '@/lib/api/skyvern-proxy';
 
 /**
- * Proxies artifact downloads from S3 signed URLs to avoid CORS issues.
- * Usage: GET /api/artifact-proxy?url=<encoded-s3-url>
+ * Derives the artifact server URL.
+ *
+ * Priority:
+ *  1. SKYVERN_ARTIFACT_URL env var (e.g. http://localhost:9090)
+ *  2. Same host as Skyvern API, port 9090 (the default artifact server port)
+ */
+function getArtifactBaseUrl(apiUrl: string): string {
+  if (process.env.SKYVERN_ARTIFACT_URL) {
+    return process.env.SKYVERN_ARTIFACT_URL.replace(/\/$/, '');
+  }
+  try {
+    const parsed = new URL(apiUrl);
+    parsed.port = '9090';
+    return parsed.origin;
+  } catch {
+    return 'http://localhost:9090';
+  }
+}
+
+/**
+ * Proxies artifact downloads to avoid CORS and handle Docker-internal URLs.
+ *
+ * Usage:
+ *   GET /api/artifact-proxy?url=<encoded-url>       — proxy any external URL
+ *   GET /api/artifact-proxy?file=<encoded-filepath>  — serve file:// artifacts via artifact server (port 9090)
  */
 export async function GET(request: NextRequest) {
   // Auth check
@@ -12,21 +36,61 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const url = request.nextUrl.searchParams.get('url');
-  if (!url) {
+  const fileParam = request.nextUrl.searchParams.get('file');
+  const urlParam = request.nextUrl.searchParams.get('url');
+
+  // ── file:// artifacts — fetched via artifact server (port 9090) ──
+  if (fileParam) {
+    try {
+      const config = await getSkyvernConfig();
+      const artifactBase = getArtifactBaseUrl(config.apiUrl);
+      const artifactUrl = `${artifactBase}/artifact/image?path=${encodeURIComponent(fileParam)}`;
+      const response = await fetch(artifactUrl);
+      if (!response.ok) {
+        return new NextResponse(`Upstream error: ${response.status}`, {
+          status: response.status,
+        });
+      }
+      const contentType =
+        response.headers.get('content-type') || 'image/png';
+      const body = await response.arrayBuffer();
+      return new NextResponse(body, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'private, max-age=3600',
+        },
+      });
+    } catch {
+      return NextResponse.json(
+        { error: 'Failed to fetch artifact from Skyvern' },
+        { status: 502 },
+      );
+    }
+  }
+
+  // ── URL-based proxy ──────────────────────────────────────────────────────
+  if (!urlParam) {
     return NextResponse.json(
-      { error: 'Missing url parameter' },
+      { error: 'Missing url or file parameter' },
       { status: 400 },
     );
   }
 
-  // Only allow S3/known artifact URLs
   let parsed: URL;
   try {
-    parsed = new URL(url);
+    parsed = new URL(urlParam);
   } catch {
     return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
   }
+
+  const skyvernHost = (() => {
+    try {
+      return new URL(process.env.SKYVERN_INTERNAL_URL || '').hostname;
+    } catch {
+      return null;
+    }
+  })();
 
   const allowed =
     parsed.hostname.endsWith('.amazonaws.com') ||
@@ -34,7 +98,8 @@ export async function GET(request: NextRequest) {
     parsed.hostname.endsWith('.storage.googleapis.com') ||
     parsed.hostname.endsWith('.blob.core.windows.net') ||
     parsed.hostname === 'localhost' ||
-    parsed.hostname === '127.0.0.1';
+    parsed.hostname === '127.0.0.1' ||
+    (skyvernHost && parsed.hostname === skyvernHost);
 
   if (!allowed) {
     return NextResponse.json(
@@ -44,7 +109,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(urlParam);
     if (!response.ok) {
       return new NextResponse(`Upstream error: ${response.status}`, {
         status: response.status,
@@ -62,7 +127,7 @@ export async function GET(request: NextRequest) {
         'Cache-Control': 'private, max-age=3600',
       },
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to fetch artifact' },
       { status: 502 },

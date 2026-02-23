@@ -46,11 +46,21 @@ async function handler(
   };
 
   let skyvernUrl = buildSkyvernUrl(skyvernPath, config.apiUrl, request.nextUrl.searchParams, '/v1/');
-  let response = await fetch(skyvernUrl, { method: request.method, headers, body });
+  let response: Response;
+  try {
+    const signal = AbortSignal.timeout(30_000);
+    response = await fetch(skyvernUrl, { method: request.method, headers, body, signal });
 
-  if (response.status === 404) {
-    skyvernUrl = buildSkyvernUrl(skyvernPath, config.apiUrl, request.nextUrl.searchParams, '/api/v1/');
-    response = await fetch(skyvernUrl, { method: request.method, headers, body });
+    if (response.status === 404) {
+      skyvernUrl = buildSkyvernUrl(skyvernPath, config.apiUrl, request.nextUrl.searchParams, '/api/v1/');
+      response = await fetch(skyvernUrl, { method: request.method, headers, body, signal });
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Connection failed';
+    return NextResponse.json(
+      { error: `Skyvern backend unreachable: ${message}` },
+      { status: 502 },
+    );
   }
 
   // 5. Audit log (fire-and-forget on write ops)

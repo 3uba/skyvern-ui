@@ -1,5 +1,6 @@
 export { RunOverview } from './run-overview';
 export { RunOverviewTab } from './run-overview-tab';
+export { ScreenshotsTab } from './screenshots-tab';
 export { RecordingSection } from './recording-section';
 export { ScreenshotsSection } from './screenshots-section';
 export { TimelineSection } from './timeline-section';
