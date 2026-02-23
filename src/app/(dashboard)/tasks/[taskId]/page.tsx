@@ -15,20 +15,31 @@ import { formatDate } from '@/lib/utils/format-date';
 import { formatDuration } from '@/lib/utils/format-duration';
 import { ArrowLeft, Clock, Globe, Target, ExternalLink } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import type { Run } from '@/components/runs';
+
+// Task runs return extra fields beyond the Run type
+type TaskRun = Run & {
+  url?: string;
+  engine?: string;
+  duration?: number;
+  navigation_goal?: string;
+  data_extraction_goal?: string;
+  extracted_information?: unknown;
+};
 
 export default function TaskDetailPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = use(params);
-  const { data: run, isLoading, error, refetch } = useRun(taskId);
+  const { data, isLoading, error, refetch } = useRun(taskId);
   const { data: timeline } = useRunTimeline(taskId);
   const { data: artifacts } = useRunArtifacts(taskId);
 
   if (isLoading) return <PageSkeleton />;
   if (error) return <ErrorState message={error.message} onRetry={() => refetch()} />;
-  if (!run) return <ErrorState message="Task not found" />;
+  if (!data) return <ErrorState message="Task not found" />;
 
-  const screenshots = Array.isArray(artifacts)
-    ? artifacts.filter((a: Record<string, string>) => a.artifact_type === 'screenshot')
-    : [];
+  const run = data as TaskRun;
+
+  const screenshots = (artifacts ?? []).filter((a) => a.artifact_type === 'screenshot');
 
   return (
     <div className="space-y-6">
@@ -122,19 +133,21 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                 <CardContent className="pt-6">
                   {Array.isArray(timeline) && timeline.length > 0 ? (
                     <div className="space-y-4">
-                      {timeline.map((entry: Record<string, string>, i: number) => (
+                      {timeline.map((entry, i) => (
                         <div key={i} className="flex gap-4">
                           <div className="w-2 h-2 mt-2 rounded-full bg-primary shrink-0" />
                           <div className="flex-1">
-                            <p className="text-sm font-medium">{entry.type || entry.action_type || 'Event'}</p>
+                            <p className="text-sm font-medium">
+                              {entry.block?.label || entry.block?.block_type || entry.type || 'Event'}
+                            </p>
                             <p className="text-xs text-muted-foreground">
                               {entry.created_at ? formatDate(entry.created_at) : ''}
                             </p>
-                            {entry.description && (
-                              <p className="text-sm text-muted-foreground mt-1">{entry.description}</p>
+                            {entry.block?.navigation_goal && (
+                              <p className="text-sm text-muted-foreground mt-1">{entry.block.navigation_goal}</p>
                             )}
                           </div>
-                          {entry.status && <StatusBadge status={entry.status} />}
+                          {entry.block?.status && <StatusBadge status={entry.block.status} />}
                         </div>
                       ))}
                     </div>
@@ -152,10 +165,10 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                 <CardContent className="pt-6">
                   {screenshots.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {screenshots.map((ss: Record<string, string>, i: number) => (
+                      {screenshots.map((ss, i) => (
                         <div key={i} className="rounded-md border overflow-hidden">
                           <img
-                            src={ss.uri || ss.url}
+                            src={ss.signed_url || ss.uri}
                             alt={`Screenshot ${i + 1}`}
                             className="w-full h-auto"
                           />
@@ -208,7 +221,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
             </CardContent>
           </Card>
 
-          {run.output && (
+          {run.output != null && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Output</CardTitle>

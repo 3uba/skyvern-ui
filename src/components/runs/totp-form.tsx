@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { postApi } from '@/lib/api/fetch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,13 +31,7 @@ export function TotpForm({ runId, totpIdentifier, workflowId }: TotpFormProps) {
       };
       if (workflowId) payload.workflow_id = workflowId;
 
-      const res = await fetch('/api/skyvern/credentials/totp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      await postApi('credentials/totp', payload);
       toast.success('Verification code sent');
       setCode('');
     } catch {

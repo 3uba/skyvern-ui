@@ -190,8 +190,9 @@ export default function RunDetailPage({
                       : undefined,
                   },
                   {
-                    onSuccess: (data: { workflow_run_id?: string; run_id?: string }) => {
-                      const newRunId = data.workflow_run_id || data.run_id;
+                    onSuccess: (data) => {
+                      const result = data as Record<string, string> | undefined;
+                      const newRunId = result?.workflow_run_id || result?.run_id;
                       if (newRunId) router.push(`/runs/${newRunId}`);
                     },
                   },

@@ -1,56 +1,9 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { ACTION_ICONS, READABLE_ACTION_TYPES } from './constants';
 import type { Action } from './types';
-import {
-  MousePointerClick,
-  Type,
-  Download,
-  Upload,
-  Eye,
-  CheckSquare,
-  Timer,
-  RotateCw,
-  X,
-  Check,
-  ArrowUpRight,
-  GripHorizontal,
-} from 'lucide-react';
-
-const ACTION_ICONS: Record<string, React.ElementType> = {
-  click: MousePointerClick,
-  input_text: Type,
-  download_file: Download,
-  upload_file: Upload,
-  hover: Eye,
-  select_option: CheckSquare,
-  checkbox: CheckSquare,
-  wait: Timer,
-  reload_page: RotateCw,
-  goto_url: ArrowUpRight,
-  drag: GripHorizontal,
-};
-
-const READABLE_TYPES: Record<string, string> = {
-  click: 'Click',
-  input_text: 'Input',
-  download_file: 'Download',
-  upload_file: 'Upload',
-  select_option: 'Select',
-  checkbox: 'Checkbox',
-  hover: 'Hover',
-  wait: 'Wait',
-  solve_captcha: 'Captcha',
-  terminate: 'Terminate',
-  complete: 'Complete',
-  reload_page: 'Reload',
-  goto_url: 'Navigate',
-  scroll: 'Scroll',
-  keypress: 'Keypress',
-  null_action: 'No Action',
-  extract: 'Extract',
-  drag: 'Drag',
-};
+import { MousePointerClick, X, Check } from 'lucide-react';
 
 const STATUS_COLORS: Record<string, string> = {
   completed: 'border-l-success',
@@ -66,7 +19,7 @@ interface ActionCardProps {
 
 export function ActionCard({ action, index }: ActionCardProps) {
   const Icon = ACTION_ICONS[action.action_type] || MousePointerClick;
-  const label = READABLE_TYPES[action.action_type] || action.action_type;
+  const label = READABLE_ACTION_TYPES[action.action_type] || action.action_type;
   const statusColor = STATUS_COLORS[action.status] || 'border-l-muted';
   const isSuccess = action.status === 'completed';
   const isFailed = action.status === 'failed';

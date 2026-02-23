@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
+import { fetchApi } from '@/lib/api/fetch';
 import {
   Card,
   CardContent,
@@ -23,12 +24,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-
-async function fetchApi(path: string) {
-  const res = await fetch(`/api/skyvern/${path}`);
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
 
 function StatCard({
   title,
@@ -110,7 +105,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex gap-2">
           <Button asChild>
-            <Link href="/tasks/new">
+            <Link href="/tasks">
               <Plus className="mr-2 h-4 w-4" />
               New Task
             </Link>
@@ -223,7 +218,7 @@ export default function DashboardPage() {
             ) : (
               <p className="text-sm text-muted-foreground py-4 text-center">
                 No runs yet.{' '}
-                <Link href="/tasks/new" className="text-primary hover:underline">
+                <Link href="/tasks" className="text-primary hover:underline">
                   Run a task
                 </Link>
               </p>

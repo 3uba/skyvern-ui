@@ -3,6 +3,7 @@
 import { use, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
+import { fetchApi } from '@/lib/api/fetch';
 import { useWorkflow } from '@/hooks/use-workflows';
 import { RunWorkflowDialog } from '@/components/workflow/run-workflow-dialog';
 import { Button } from '@/components/ui/button';
@@ -21,12 +22,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-
-async function fetchApi(path: string) {
-  const res = await fetch(`/api/skyvern/${path}`);
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
 
 export default function WorkflowRunsPage({
   params,

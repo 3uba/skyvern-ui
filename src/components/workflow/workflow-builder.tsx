@@ -57,7 +57,7 @@ export function WorkflowBuilder({ blocks, onBlocksChange }: WorkflowBuilderProps
     (index: number) => {
       const original = blocks[index];
       const copy = {
-        ...JSON.parse(JSON.stringify(original)),
+        ...structuredClone(original),
         label: ((original.label as string) || '') + '_copy',
       };
       const next = [...blocks];

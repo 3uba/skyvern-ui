@@ -70,11 +70,11 @@ export function RunWorkflowDialog({
       const data: Record<string, unknown> = {};
       if (Object.keys(params).length > 0) data.parameters = params;
 
-      const result = await runWorkflow.mutateAsync({ workflowId, data });
+      const result = (await runWorkflow.mutateAsync({ workflowId, data })) as Record<string, string> | undefined;
       const runId = result?.workflow_run_id || result?.run_id;
       toast.success(runId ? `Run started: ${runId.slice(0, 16)}...` : 'Workflow run started');
       setOpen(false);
-      onSuccess?.(runId);
+      if (runId) onSuccess?.(runId);
     } catch {
       toast.error('Failed to run workflow');
     }
@@ -87,10 +87,10 @@ export function RunWorkflowDialog({
       return;
     }
     try {
-      const result = await runWorkflow.mutateAsync({ workflowId });
+      const result = (await runWorkflow.mutateAsync({ workflowId })) as Record<string, string> | undefined;
       const runId = result?.workflow_run_id || result?.run_id;
       toast.success(runId ? `Run started: ${runId.slice(0, 16)}...` : 'Workflow run started');
-      onSuccess?.(runId);
+      if (runId) onSuccess?.(runId);
     } catch {
       toast.error('Failed to run workflow');
     }

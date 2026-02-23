@@ -2,103 +2,18 @@
 
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { StatusBadge } from '@/components/shared/status-badge';
 import { formatDuration } from '@/lib/utils/format-duration';
+import { BLOCK_ICONS, BLOCK_COLORS, ACTION_ICONS, READABLE_ACTION_TYPES } from './constants';
 import type { TimelineEntry } from './types';
 import {
   Brain,
   ChevronDown,
   ChevronRight,
-  Clock,
-  Globe,
   ListChecks,
-  Repeat,
-  GitBranch,
-  Code,
-  Mail,
-  FileText,
-  Zap,
   MousePointerClick,
-  Type,
-  Download,
-  Upload,
-  Eye,
-  CheckSquare,
-  Timer,
-  RotateCw,
-  ArrowUpRight,
-  GripHorizontal,
   Check,
   X,
 } from 'lucide-react';
-
-const BLOCK_ICONS: Record<string, React.ElementType> = {
-  task: ListChecks,
-  action: Zap,
-  navigation: Globe,
-  extraction: FileText,
-  for_loop: Repeat,
-  conditional: GitBranch,
-  code: Code,
-  text_prompt: Brain,
-  send_email: Mail,
-  wait: Clock,
-};
-
-const BLOCK_COLORS: Record<string, string> = {
-  task: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-  action:
-    'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-  navigation:
-    'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-  extraction:
-    'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-  for_loop:
-    'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
-  conditional:
-    'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20',
-  code: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
-  text_prompt:
-    'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20',
-  send_email:
-    'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-  wait: 'bg-muted text-muted-foreground border-muted',
-};
-
-const ACTION_ICONS: Record<string, React.ElementType> = {
-  click: MousePointerClick,
-  input_text: Type,
-  download_file: Download,
-  upload_file: Upload,
-  hover: Eye,
-  select_option: CheckSquare,
-  checkbox: CheckSquare,
-  wait: Timer,
-  reload_page: RotateCw,
-  goto_url: ArrowUpRight,
-  drag: GripHorizontal,
-};
-
-const READABLE_TYPES: Record<string, string> = {
-  click: 'Click',
-  input_text: 'Input',
-  download_file: 'Download',
-  upload_file: 'Upload',
-  select_option: 'Select',
-  checkbox: 'Checkbox',
-  hover: 'Hover',
-  wait: 'Wait',
-  solve_captcha: 'Captcha',
-  terminate: 'Terminate',
-  complete: 'Complete',
-  reload_page: 'Reload',
-  goto_url: 'Navigate',
-  scroll: 'Scroll',
-  keypress: 'Keypress',
-  null_action: 'No Action',
-  extract: 'Extract',
-  drag: 'Drag',
-};
 
 interface SidebarBlockItemProps {
   entry: TimelineEntry;
@@ -198,7 +113,7 @@ export function SidebarBlockItem({
               const AIcon =
                 ACTION_ICONS[action.action_type] || MousePointerClick;
               const label =
-                READABLE_TYPES[action.action_type] || action.action_type;
+                READABLE_ACTION_TYPES[action.action_type] || action.action_type;
               const isSuccess = action.status === 'completed';
               const isFailed = action.status === 'failed';
 

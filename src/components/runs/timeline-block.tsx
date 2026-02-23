@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/shared/status-badge';
 import { JsonViewer } from '@/components/shared/json-viewer';
 import { formatDuration } from '@/lib/utils/format-duration';
 import { ActionCard } from './action-card';
+import { BLOCK_ICONS, BLOCK_COLORS } from './constants';
 import type { TimelineEntry } from './types';
 import {
   Brain,
@@ -14,39 +15,7 @@ import {
   Clock,
   Globe,
   ListChecks,
-  Repeat,
-  GitBranch,
-  Code,
-  Mail,
-  FileText,
-  Zap,
 } from 'lucide-react';
-
-const BLOCK_ICONS: Record<string, React.ElementType> = {
-  task: ListChecks,
-  action: Zap,
-  navigation: Globe,
-  extraction: FileText,
-  for_loop: Repeat,
-  conditional: GitBranch,
-  code: Code,
-  text_prompt: Brain,
-  send_email: Mail,
-  wait: Clock,
-};
-
-const BLOCK_COLORS: Record<string, string> = {
-  task: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-  action: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-  navigation: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-  extraction: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-  for_loop: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
-  conditional: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20',
-  code: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
-  text_prompt: 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20',
-  send_email: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-  wait: 'bg-muted text-muted-foreground border-muted',
-};
 
 interface TimelineBlockProps {
   entry: TimelineEntry;

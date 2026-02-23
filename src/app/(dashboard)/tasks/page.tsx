@@ -68,7 +68,7 @@ export default function TasksPage() {
       if (proxyLocation && proxyLocation !== 'NONE')
         payload.proxy_location = proxyLocation;
 
-      const result = await createTask.mutateAsync(payload);
+      const result = (await createTask.mutateAsync(payload)) as Record<string, string>;
       toast.success('Task started');
       router.push(`/runs/${result.run_id || result.task_id}`);
     } catch {

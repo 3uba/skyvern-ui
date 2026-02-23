@@ -1,6 +1,8 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchApi, postApi } from '@/lib/api/fetch';
+import type { Run, TimelineEntry, Artifact } from '@/components/runs/types';
 
 const ACTIVE_STATUSES = ['running', 'queued', 'created'];
 
@@ -14,17 +16,6 @@ export const runKeys = {
   artifacts: (id: string) => [...runKeys.all, 'artifacts', id] as const,
 };
 
-async function fetchApi(path: string) {
-  const res = await fetch(`/api/skyvern/${path}`);
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
-
-async function postApi(path: string) {
-  const res = await fetch(`/api/skyvern/${path}`, { method: 'POST' });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
 
 export function useRuns(page = 1, pageSize = 10, searchKey?: string) {
   const params = new URLSearchParams({
@@ -50,11 +41,11 @@ export function useRuns(page = 1, pageSize = 10, searchKey?: string) {
 export function useRun(runId: string) {
   return useQuery({
     queryKey: runKeys.detail(runId),
-    queryFn: () => fetchApi(`runs/${runId}`),
+    queryFn: () => fetchApi<Run>(`runs/${runId}`),
     enabled: !!runId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      if (ACTIVE_STATUSES.includes(status)) return 2000;
+      if (typeof status === 'string' && ACTIVE_STATUSES.includes(status)) return 2000;
       return false;
     },
   });
@@ -71,7 +62,7 @@ export function useRunTimeline(runId: string, workflowPermanentId?: string, isRu
 
   return useQuery({
     queryKey: runKeys.timeline(runId),
-    queryFn: () => fetchApi(path),
+    queryFn: () => fetchApi<TimelineEntry[]>(path),
     enabled: !!runId && (!isWorkflowRun || !!workflowPermanentId),
     // Keep polling while the run is active so new blocks are detected
     refetchInterval: isRunActive ? 3000 : false,
@@ -81,7 +72,7 @@ export function useRunTimeline(runId: string, workflowPermanentId?: string, isRu
 export function useRunArtifacts(runId: string, isActive = false) {
   return useQuery({
     queryKey: runKeys.artifacts(runId),
-    queryFn: () => fetchApi(`runs/${runId}/artifacts`),
+    queryFn: () => fetchApi<Artifact[]>(`runs/${runId}/artifacts`),
     enabled: !!runId,
     refetchInterval: isActive ? 2000 : false,
   });
@@ -90,7 +81,7 @@ export function useRunArtifacts(runId: string, isActive = false) {
 export function useBlockArtifacts(blockId: string | null, isActive = false) {
   return useQuery({
     queryKey: ['blockArtifacts', blockId],
-    queryFn: () => fetchApi(`workflow_run_block/${blockId}/artifacts`),
+    queryFn: () => fetchApi<Artifact[]>(`workflow_run_block/${blockId}/artifacts`),
     enabled: !!blockId,
     // Keep polling for active runs to get the latest screenshot
     refetchInterval: isActive ? 3000 : false,

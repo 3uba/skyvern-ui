@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchApi, postApi } from '@/lib/api/fetch';
 
 export const workflowKeys = {
   all: ['workflows'] as const,
@@ -8,12 +9,6 @@ export const workflowKeys = {
   list: (filters: Record<string, unknown>) => [...workflowKeys.lists(), filters] as const,
   detail: (id: string) => [...workflowKeys.all, 'detail', id] as const,
 };
-
-async function fetchApi(path: string, options?: RequestInit) {
-  const res = await fetch(`/api/skyvern/${path}`, options);
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
 
 export function useWorkflows(page = 1, pageSize = 10) {
   return useQuery({
@@ -33,12 +28,7 @@ export function useWorkflow(workflowId: string) {
 export function useCreateWorkflow() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      fetchApi('workflows', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }),
+    mutationFn: (data: Record<string, unknown>) => postApi('workflows', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: workflowKeys.lists() });
     },
@@ -49,11 +39,7 @@ export function useUpdateWorkflow() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ workflowId, data }: { workflowId: string; data: Record<string, unknown> }) =>
-      fetchApi(`workflows/${workflowId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }),
+      postApi(`workflows/${workflowId}`, data),
     onSuccess: (_, { workflowId }) => {
       queryClient.invalidateQueries({ queryKey: workflowKeys.detail(workflowId) });
       queryClient.invalidateQueries({ queryKey: workflowKeys.lists() });
@@ -64,8 +50,7 @@ export function useUpdateWorkflow() {
 export function useDeleteWorkflow() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (workflowId: string) =>
-      fetchApi(`workflows/${workflowId}/delete`, { method: 'POST' }),
+    mutationFn: (workflowId: string) => postApi(`workflows/${workflowId}/delete`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: workflowKeys.lists() });
     },
@@ -76,11 +61,7 @@ export function useRunWorkflow() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ workflowId, data }: { workflowId: string; data?: Record<string, unknown> }) =>
-      fetchApi(`run/workflows`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workflow_id: workflowId, ...data }),
-      }),
+      postApi('run/workflows', { workflow_id: workflowId, ...data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['runs'] });
     },

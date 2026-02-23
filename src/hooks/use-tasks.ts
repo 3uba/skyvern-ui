@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { postApi } from '@/lib/api/fetch';
 
 export const taskKeys = {
   all: ['tasks'] as const,
@@ -9,21 +10,10 @@ export const taskKeys = {
   detail: (id: string) => [...taskKeys.all, 'detail', id] as const,
 };
 
-async function fetchApi(path: string, options?: RequestInit) {
-  const res = await fetch(`/api/skyvern/${path}`, options);
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
-
 export function useCreateTask() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      fetchApi('run/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }),
+    mutationFn: (data: Record<string, unknown>) => postApi('run/tasks', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
     },
