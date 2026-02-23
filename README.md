@@ -28,8 +28,8 @@ A self-hosted web interface for [Skyvern](https://github.com/Skyvern-AI/skyvern)
     <td><img src="docs/screenshots/sessions.png" alt="Browser Sessions" width="400"><br><b>Browser Sessions</b></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/run.png" alt="Run Detail" width="400"><br><b>Run Detail</b></td>
     <td><img src="docs/screenshots/users.png" alt="User Management" width="400"><br><b>User Management</b></td>
-    <td></td>
   </tr>
 </table>
 
