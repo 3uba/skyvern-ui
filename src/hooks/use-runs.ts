@@ -99,8 +99,15 @@ export function useBlockArtifacts(blockId: string | null, isActive = false) {
 
 export function useCancelRun(runId: string) {
   const queryClient = useQueryClient();
+  // Workflow runs (wr_) need the legacy cancel endpoint because
+  // /v1/runs/{id}/cancel can't resolve workflow run IDs.
+  const isWorkflowRun = runId.startsWith('wr_');
+  const cancelPath = isWorkflowRun
+    ? `workflows/runs/${runId}/cancel`
+    : `runs/${runId}/cancel`;
+
   return useMutation({
-    mutationFn: () => postApi(`runs/${runId}/cancel`),
+    mutationFn: () => postApi(cancelPath),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: runKeys.detail(runId) });
       queryClient.invalidateQueries({ queryKey: runKeys.timeline(runId) });
