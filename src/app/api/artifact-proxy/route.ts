@@ -24,6 +24,7 @@ function getArtifactBaseUrl(apiUrl: string): string {
 
 /**
  * Proxies artifact downloads to avoid CORS and handle Docker-internal URLs.
+ * Supports Range requests so videos can be seeked without downloading fully.
  *
  * Usage:
  *   GET /api/artifact-proxy?url=<encoded-url>       — proxy any external URL
@@ -45,22 +46,7 @@ export async function GET(request: NextRequest) {
       const config = await getSkyvernConfig();
       const artifactBase = getArtifactBaseUrl(config.apiUrl);
       const artifactUrl = `${artifactBase}/artifact/image?path=${encodeURIComponent(fileParam)}`;
-      const response = await fetch(artifactUrl);
-      if (!response.ok) {
-        return new NextResponse(`Upstream error: ${response.status}`, {
-          status: response.status,
-        });
-      }
-      const contentType =
-        response.headers.get('content-type') || 'image/png';
-      const body = await response.arrayBuffer();
-      return new NextResponse(body, {
-        status: 200,
-        headers: {
-          'Content-Type': contentType,
-          'Cache-Control': 'private, max-age=3600',
-        },
-      });
+      return proxyFetch(artifactUrl, request);
     } catch {
       return NextResponse.json(
         { error: 'Failed to fetch artifact from Skyvern' },
@@ -109,28 +95,56 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const response = await fetch(urlParam);
-    if (!response.ok) {
-      return new NextResponse(`Upstream error: ${response.status}`, {
-        status: response.status,
-      });
-    }
-
-    const contentType =
-      response.headers.get('content-type') || 'application/octet-stream';
-    const body = await response.arrayBuffer();
-
-    return new NextResponse(body, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'private, max-age=3600',
-      },
-    });
+    return proxyFetch(urlParam, request);
   } catch {
     return NextResponse.json(
       { error: 'Failed to fetch artifact' },
       { status: 502 },
     );
   }
+}
+
+/**
+ * Fetches the upstream URL and streams the response back.
+ * Forwards Range headers so the browser can seek within videos.
+ */
+async function proxyFetch(targetUrl: string, request: NextRequest) {
+  const headers: Record<string, string> = {};
+  const range = request.headers.get('range');
+  if (range) {
+    headers['Range'] = range;
+  }
+
+  const response = await fetch(targetUrl, { headers });
+  if (!response.ok && response.status !== 206) {
+    return new NextResponse(`Upstream error: ${response.status}`, {
+      status: response.status,
+    });
+  }
+
+  const responseHeaders: Record<string, string> = {
+    'Content-Type': response.headers.get('content-type') || 'application/octet-stream',
+    'Cache-Control': 'private, max-age=3600',
+  };
+
+  // Forward headers needed for Range/seek support
+  const contentLength = response.headers.get('content-length');
+  if (contentLength) responseHeaders['Content-Length'] = contentLength;
+
+  const contentRange = response.headers.get('content-range');
+  if (contentRange) responseHeaders['Content-Range'] = contentRange;
+
+  const acceptRanges = response.headers.get('accept-ranges');
+  if (acceptRanges) responseHeaders['Accept-Ranges'] = acceptRanges;
+
+  // If upstream doesn't advertise Accept-Ranges but supports it,
+  // add it ourselves so the browser knows seeking is possible.
+  if (!acceptRanges && contentLength) {
+    responseHeaders['Accept-Ranges'] = 'bytes';
+  }
+
+  return new NextResponse(response.body, {
+    status: response.status,
+    headers: responseHeaders,
+  });
 }
